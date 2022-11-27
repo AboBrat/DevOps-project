@@ -1,0 +1,42 @@
+---
+- name: Install Jenkins
+  hosts: jenkins
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Install apt
+      apt:
+        name:
+          - wget
+          - openjdk-11-jdk
+
+    - name: Download jenkins.repo
+      get_url:
+        url: https://pkg.origin.jenkins.io/debian/
+        dest: /etc/apt/sources.list.d/jenkins.repo
+
+    - name: Import Jenkins Key
+      rpm_key:
+        state: present
+        key: https://pkg.jenkins.io/debian/jenkins.io.key 
+
+    - name: Install Jenkins-CI
+      apt:
+        name: '*'
+        state: present
+        update_cache: yes
+
+    - name: Start & Enable Jenkins
+      systemd:
+        name: jenkins
+        state: started
+        enabled: true
+
+    - name: Get init password Jenkins
+      shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+      changed_when: false
+      register: result
+
+    - name: Print init password Jenkins
+      debug:
+        var: result.stdout

@@ -1,0 +1,30 @@
+Instalacija ansible-a
+
+$ sudo apt update
+
+$ sudo apt install software-properties-common (exp. pip3)
+
+$ sudo add-apt-repository --yes --update ppa:ansible/ansible
+
+$ sudo apt install ansible
+
+--------------------------------------------------------------------------------------------
+	*	- First file "hosts" --> location /etc/ansible/hosts
+			[example]
+			104.214.221.189 <-(public IP)
+
+		- command in terminal
+			$ ansible -i inventory example -m ping -u azureuser
+			(ansible -i filename inventory group -m ping -u username)
+
+--------------------------------------------------------------------------------------------	
+	*	-Second file "ansible.cfg"
+			[defaults]
+			INVENTORY = hosts
+
+		-command  
+			$ ansible example -m ping -u azureuser	
+--------------------------------------------------------------------------------------------
+kreiranje ssh-keygen -t rsa /home/user/.ssh/ansible
+ssh-copy-id -i ~/.ssh/ansible	user@<ip_adress> dodavanje ansible keygen-a u authorizated_key na user VM-u
+
