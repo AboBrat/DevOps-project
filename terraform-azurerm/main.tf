@@ -15,17 +15,28 @@ resource "azurerm_subnet" "subnet" {
 }
 #Create interface
 resource "azurerm_network_interface" "nic" {
-  name                = "F5B6F-nic"
+  count = 2
+  name                = "F5B6F-nic-${count.index}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id = azurerm_public_ip.pubip.id
+    private_ip_address_allocation = "Static"
+    public_ip_address_id = azurerm_public_ip.pubip[count.index].id
   }
 }
+
+ resource "azurerm_managed_disk" "amd" {
+   count                = 2
+   name                 = "datadisk_existing_${count.index}"
+   location             = azurerm_resource_group.rg.location
+   resource_group_name  = azurerm_resource_group.rg.name
+   storage_account_type = "Standard_LRS"
+   create_option        = "Empty"
+   disk_size_gb         = "1023"
+ }
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "VM-Security-Group"
@@ -48,17 +59,24 @@ resource "azurerm_network_security_rule" "rules" {
   network_security_group_name = azurerm_network_security_group.nsg.name
 }
 
+resource "azurerm_availability_set" "avset" {
+   name                         = "avset"
+   location                     = azurerm_resource_group.rg.location
+   resource_group_name          = azurerm_resource_group.rg.name
+   platform_fault_domain_count  = 2
+   platform_update_domain_count = 2
+   managed                      = true
+ }
   
 #Create Virtual Machine
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "vm-machine"
+  count = 2
+  name                = "vm-machine${count.index}"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   size                = "Standard_D2s_v3"
   admin_username      = "azureuser"
-  network_interface_ids = [
-    azurerm_network_interface.nic.id,
-  ]
+  network_interface_ids = [azurerm_network_interface.nic[count.index].id]
 
 admin_ssh_key {
     username   = "azureuser"
@@ -73,7 +91,7 @@ admin_ssh_key {
   source_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
-    sku       = "16.04-LTS"
+    sku       = "18.04-LTS"
     version   = "latest"
   }
 }
