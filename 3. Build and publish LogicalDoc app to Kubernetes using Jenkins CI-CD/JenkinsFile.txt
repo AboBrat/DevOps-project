@@ -1,22 +1,20 @@
 pipeline {
     agent any
-#Use maven
     tools{
         maven 'maven'
     }
-#Use registry location
-#registryCredential from Jenkins
     environment {
         registry = "albatros123/kubernetes" 
         registryCredential = 'bf3d08a2-c3fc-4e5c-a418-126f625839a3'
         dockerImage = ''
+        
     }
     stages {
         stage('Cloning git') { 
             steps {
                 echo 'Clone the repo'
-                sh 'rm -fr azureuser'
-                sh 'git clone https://github.com/logicaldoc/community.git ~/jenkinsnode/workspace/git-docker-kubernetes/LogicDoc'
+                sh 'rm -r LogicDoc'
+                sh 'git clone https://github.com/logicaldoc/community.git ~/workspace/git-docker-kubernetes/LogicDoc'
             }
         }
         stage('Maven test') {
@@ -31,33 +29,35 @@ pipeline {
         stage('Building image') { 
             
             steps {
-                sh 'cd ..'
                 script {
-                 dockerImage = docker.build registry + ":$BUILD_NUMBER"
+                    dockerImage = docker.build registry + ":$BUILD_NUMBER"
                 }
             }
         }
         stage('Creating Docker image') { 
             steps {
                 script {
-                    
-                  docker.withRegistry('', registryCredential) { 
-                    dockerImage.push() 
-                    
+                    docker.withRegistry('', registryCredential) { 
+                    dockerImage.push()
+                    dockerImage.push('latest')
                     }
                 }
             }
         }
-        stage('Deploy to Kubernetes') { 
+        stage('Deploy') { 
             steps { 
-                echo 'Deploy to Kubernetes'
+                    sh "minikube start"
+                    sh "kubectl delete deployment hello-k8s"
+                    sh "kubectl delete services hello-k8s"
+                    sh "kubectl create deployment hello-k8s --image=albatros123/kubernetes:''"
+                    sh "kubectl expose deployment hello-k8s --type=NodePort --port=80"
+                    sh "minikube service hello-k8s"
                 }
             } 
         }
         post {
             always {
                 sh 'docker logout'
-                
             }
         } 
     }
