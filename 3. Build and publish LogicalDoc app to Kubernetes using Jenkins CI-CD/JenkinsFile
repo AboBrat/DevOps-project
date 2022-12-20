@@ -4,47 +4,46 @@ pipeline {
         maven 'maven'
     }
     environment {
-        registry = "albatros123/kubernetes" 
-        registryCredential = 'bf3d08a2-c3fc-4e5c-a418-126f625839a3'
+        registry = "albatros123/testing" 
+        registryCredential = "docker-acc"
         dockerImage = ''
         
     }
     stages {
         stage('Cloning git') { 
             steps {
-                echo 'Clone the repo'
-                sh 'rm -r LogicDoc'
-                sh 'git clone https://github.com/logicaldoc/community.git ~/workspace/git-docker-kubernetes/LogicDoc'
+                echo 'Clone the git'
+                sh 'rm -r community'
+                sh 'git clone https://github.com/logicaldoc/community.git --branch 8.7.3'
             }
         }
-        stage('Maven test') {
+        stage('Maven testing') {
             steps {
                 script {
-                    warnError(message: "Maven test stage was unstable.", catchInterruptions: false) {
-                    sh 'mvn clean test'
-                    }
+                    // maven version
+                    sh 'mvn -v'
+                    // maven clean install in parent pom.xml
+                    sh 'mvn -f community/build/poms clean install'
                 }
             }
         }
-        stage('Building image') { 
-            
+        stage('Building image'){ 
             steps {
                 script {
-                    dockerImage = docker.build registry + ":$BUILD_NUMBER"
+                    dockerImage = docker.build registry + ":$BUILD_NUMBER" 
                 }
             }
         }
-        stage('Creating Docker image') { 
+        stage("Dockerize image"){ 
             steps {
                 script {
                     docker.withRegistry('', registryCredential) { 
-                    dockerImage.push()
                     dockerImage.push('latest')
                     }
                 }
             }
         }
-        stage('Deploy') { 
+        stage('Deploy'){ 
             steps { 
                     sh "minikube start"
                     sh "kubectl delete deployment hello-k8s"
@@ -57,7 +56,8 @@ pipeline {
         }
         post {
             always {
-                sh 'docker logout'
+                sh "docker logout"
+                sh "minikube status"
             }
         } 
     }

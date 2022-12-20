@@ -1,21 +1,11 @@
-#Dockerized Git repository
-FROM maven:3.6.0-jdk-11
-MAINTAINER Nikola Drobnjak (ndrobnjak@comtrade.com)
-
-WORKDIR /git-docker-kubernetes/LogicDoc
-
-RUN apt-get update && \
-    # Install git
-    apt-get install -qy git && \
-    # Install JDK 11
-    apt-get install -qy default-jdk && \ 
-    # Install maven
-    apt-get install -qy maven && \
-    # Cleanup old packages
-    apt-get -qy autoremove
-
-COPY ./LogicDoc ~/azureuser/jenkinsnode/workspace/git-docker-kubernetes/
-
-RUN mvn clean
+FROM maven:3.6.1-jdk-11-slim
+WORKDIR /home/azureuser/workspace/DevOps/community/build/poms/
 CMD ["mvn","clean","install"]
+
+FROM maven:3.6.1-jdk-11-slim
+WORKDIR /home/azureuser/workspace/DevOps/
+COPY  community/ant/lib/*.jar /target/
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","logicaldoc-1.0-SNAPSHOT.jar"]
+
 
